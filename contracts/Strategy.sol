@@ -39,7 +39,7 @@ contract Strategy is BaseStrategy {
         // You can set these parameters on deployment to whatever you want
         // maxReportDelay = 6300;
         profitFactor = 1000;
-        // debtThreshold = 0;
+        debtThreshold = 1_000_000 *1e18;
         safeBox = ISafeBox(_safeBox);
         require(address(want) == safeBox.uToken(), "Wrong safebox");
         crToken = CErc20I(safeBox.cToken());
@@ -50,7 +50,7 @@ contract Strategy is BaseStrategy {
 
     function name() external override view returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
-        return "StrategyAH2Earn";
+        return string(abi.encodePacked("StrategyAH2Earn", crToken.symbol()));
     }
 
     function claim(uint totalReward, bytes32[] memory proof) public onlyAuthorized {
@@ -94,6 +94,8 @@ contract Strategy is BaseStrategy {
 
         uint256 total = looseAssets.add(lentAssets);
 
+
+        //future sam. this is from gen lender hence the logic of why we would have loose assets and no lent assets
         if (lentAssets == 0) {
             //no position to harvest or profit to report
             if (_debtPayment > looseAssets) {
@@ -128,7 +130,7 @@ contract Strategy is BaseStrategy {
         } else {
             //serious. loss should never happen but if it does lets record it accurately
             _loss = debt - total;
-            uint256 amountToFree = _loss.add(_debtPayment);
+            uint256 amountToFree = _debtPayment;
 
             if (amountToFree > 0 && looseAssets < amountToFree) {
                 //withdraw what we can withdraw
@@ -136,19 +138,11 @@ contract Strategy is BaseStrategy {
                 _withdrawSome(amountToFree.sub(looseAssets));
                 uint256 newLoose = want.balanceOf(address(this));
 
-                //if we dont have enough money adjust _debtOutstanding and only change profit if needed
                 if (newLoose < amountToFree) {
-                    if (_loss > newLoose) {
-                        _loss = newLoose;
-                        _debtPayment = 0;
-                    } else {
-                        _debtPayment = Math.min(newLoose - _loss, _debtPayment);
-                    }
+                    _debtPayment = newLoose;
                 }
             }
         }
-
-        
     }
 
     function adjustPosition(uint256 _debtOutstanding) internal override {
@@ -159,6 +153,7 @@ contract Strategy is BaseStrategy {
     }
 
     //withdraw amount from safebox
+    //safe to enter more than we have
     function _withdrawSome(uint256 _amount) internal returns (uint256) {
 
         uint256 amountInCtokens = convertFromUnderlying(_amount);
@@ -223,7 +218,6 @@ contract Strategy is BaseStrategy {
 
     function ethToWant(uint256 _amount) internal view returns (uint256) {
         address[] memory path = new address[](2);
-        path = new address[](2);
         path[0] = weth;
         path[1] = address(want);
 

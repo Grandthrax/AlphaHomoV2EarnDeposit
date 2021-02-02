@@ -22,6 +22,7 @@ def test_opsss(currency,strategy, rewards,chain,vault,cdai, ibDAI,whale,gov,stra
     whale_deposit  = 10_000 *1e18
     vault.deposit(whale_deposit, {"from": whale})
     strategy.harvest({'from': strategist})
+    assert currency.balanceOf(strategy) ==0
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
@@ -62,6 +63,7 @@ def test_migrate(currency,Strategy, strategy,ibDAI, chain,vault, whale,gov,strat
     whale_deposit  = 10_000 *1e18
     vault.deposit(whale_deposit, {"from": whale})
     strategy.harvest({'from': strategist})
+    
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
@@ -84,6 +86,7 @@ def test_reduce_limit(currency,Strategy,cdai, strategy, chain,vault, ibDAI, whal
     currency.approve(vault, 2 ** 256 - 1, {"from": whale} )
     whale_deposit  = 100 *1e18
     vault.deposit(whale_deposit, {"from": whale})
+    strategy.harvest({'from': strategist})
     strategy.harvest({'from': strategist})
 
     genericStateOfStrat(strategy, currency, vault)
@@ -116,3 +119,51 @@ def test_live_add(currency,Strategy,cdai, strategist, ibDAI, live_dai_comp_strat
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
+
+
+def test_immediate_withdraw(currency,strategy, rewards,chain,vault,cdai, ibDAI,whale,gov,strategist, interface):
+    rate_limit = 1_000_000_000 *1e18
+    debt_ratio = 10_000
+    vault.addStrategy(strategy, debt_ratio, rate_limit, 1000, {"from": gov})
+
+    currency.approve(vault, 2 ** 256 - 1, {"from": whale} )
+    whalebefore = currency.balanceOf(whale)
+    whale_deposit  = 10_000 *1e18
+    vault.deposit(whale_deposit, {"from": whale})
+    strategy.harvest({'from': strategist})
+    assert currency.balanceOf(strategy) ==0
+
+    vault.withdraw({"from": whale})
+    vault.withdraw({"from": rewards})
+    print("\nWithdraw")
+    genericStateOfStrat(strategy, currency, vault)
+    genericStateOfVault(vault, currency)
+    whaleP = (currency.balanceOf(whale) - whalebefore)
+    print("Whale profit: ", whaleP/1e18)
+
+def test_no_liquidity(currency,Strategy,cdai, strategy, chain,vault, weth, cweth, ibDAI, whale,gov,strategist, interface):
+    rate_limit = 1_000_000_000 *1e18
+    debt_ratio = 10_000
+    vault.addStrategy(strategy, debt_ratio, rate_limit, 1000, {"from": gov})
+
+    currency.approve(vault, 2 ** 256 - 1, {"from": whale} )
+    weth.approve(cweth, 2 ** 256 - 1, {"from": whale} )
+    cweth.mint(1000*1e18, {"from": whale})
+    cweth.borrow(1, {"from": whale})
+
+    whale_deposit  = 1000 *1e18
+    vault.deposit(whale_deposit, {"from": whale})
+    strategy.harvest({'from': strategist})
+
+    cdai.borrow(currency.balanceOf(cdai), {"from": whale})
+
+    genericStateOfStrat(strategy, currency, vault)
+    genericStateOfVault(vault, currency)
+
+    pre = vault.balanceOf(whale)
+
+    vault.withdraw({"from": whale})
+
+    genericStateOfStrat(strategy, currency, vault)
+    genericStateOfVault(vault, currency)
+    assert vault.balanceOf(whale) == pre

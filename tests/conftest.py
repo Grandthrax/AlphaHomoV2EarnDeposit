@@ -14,6 +14,10 @@ def currency(interface):
     yield interface.ERC20('0x6B175474E89094C44Da98b954EedeAC495271d0F')
 
 @pytest.fixture
+def weth(interface):
+    yield interface.ERC20('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+
+@pytest.fixture
 def whale(accounts, web3, currency, chain):
     #big binance7 wallet
     #acc = accounts.at('0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', force=True)
@@ -37,6 +41,10 @@ def ibDAI(interface):
 @pytest.fixture
 def cdai(interface):
     yield interface.CErc20I('0x8e595470Ed749b85C6F7669de83EAe304C2ec68F')
+
+@pytest.fixture
+def cweth(interface):
+    yield interface.CErc20I('0x41c84c0e2EE0b740Cf0d31F63f3B6F627DC6b393')
 
 @pytest.fixture
 def ychad(accounts):
