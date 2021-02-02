@@ -73,9 +73,10 @@ def test_migrate(currency,Strategy, strategy,ibDAI, chain,vault, whale,gov,strat
     strategy.harvest({'from': strategist})
 
     strategy2 = strategist.deploy(Strategy, vault, ibDAI)
+    ibbefore = ibDAI.balanceOf(strategy)
     vault.migrateStrategy(strategy, strategy2, {'from': gov})
     assert ibDAI.balanceOf(strategy) == 0
-    assert ibDAI.balanceOf(strategy2) > 0
+    assert ibDAI.balanceOf(strategy2) == ibbefore
     print(ibDAI.balanceOf(strategy2))
 
 def test_reduce_limit(currency,Strategy,cdai, strategy, chain,vault, ibDAI, whale,gov,strategist, interface):
