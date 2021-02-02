@@ -12,33 +12,33 @@ import brownie
 #           - change in loading (from low to high and high to low)
 #           - strategy operation at different loading levels (anticipated and "extreme")
 
-def test_opsss(currency,strategy,zapper, rewards,chain,vault, whale,gov,strategist, interface):
+def test_opsss(currency,strategy, rewards,chain,vault,cdai, ibDAI,whale,gov,strategist, interface):
     rate_limit = 1_000_000_000 *1e18
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, rate_limit, 1000, {"from": gov})
 
     currency.approve(vault, 2 ** 256 - 1, {"from": whale} )
     whalebefore = currency.balanceOf(whale)
-    whale_deposit  = 100 *1e18
+    whale_deposit  = 10_000 *1e18
     vault.deposit(whale_deposit, {"from": whale})
     strategy.harvest({'from': strategist})
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
 
-    chain.sleep(2592000)
-    chain.mine(1)
+    chain.mine(100)
+    cdai.mint(0, {'from': strategist})
 
     strategy.harvest({'from': strategist})
-    steth = interface.ERC20('0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84')
+    
 
-    print("steth = ", steth.balanceOf(strategy)/1e18)
-    print("eth = ", strategy.balance()/1e18)
+    print("ibDai = ", ibDAI.balanceOf(strategy)/1e18)
+    print("dai = ", currency.balanceOf(strategy)/1e18)
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
 
-    print("\nEstimated APR: ", "{:.2%}".format(((vault.totalAssets()-100*1e18)*12)/(100*1e18)))
+    print("\nEstimated APR: ", "{:.2%}".format(((vault.totalAssets()-10_000*1e18)*21024)/(10_000*1e18)))
 
     vault.withdraw({"from": whale})
     vault.withdraw({"from": rewards})
@@ -46,76 +46,37 @@ def test_opsss(currency,strategy,zapper, rewards,chain,vault, whale,gov,strategi
     print("\nWithdraw")
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
-    print("Whale profit: ", (currency.balanceOf(whale) - whalebefore)/1e18)
-
-def test_zapper(currency,strategy,zapper, chain,vault, whale,gov,strategist, interface):
-    rate_limit = 1_000_000_000 *1e18
-    debt_ratio = 10_000
-
-    zapper.updateVaultAddress(vault)
-    vault.addStrategy(strategy, debt_ratio, rate_limit, 1000, {"from": gov})
-
-    gov.transfer(zapper, 5*1e18)
-    before = vault.balanceOf(gov)
-    print(before/1e18)
-    assert vault.balanceOf(gov) >0
-
-    zapper.zapEthIn(5, {"from": gov, "value": 5*1e18})
-
-    print(vault.balanceOf(gov)/1e18)
-    assert vault.balanceOf(gov) >before
-    strategy.harvest({'from': strategist})
-
-    chain.sleep(2592000)
-    chain.mine(1)
-    strategy.harvest({'from': strategist})
-    genericStateOfStrat(strategy, currency, vault)
-    genericStateOfVault(vault, currency)
-
-    bBefore = gov.balance()
-    vault.approve(zapper, 2 ** 256 - 1, {"from": gov} )
-    zapper.zapEthOut(vault.balanceOf(gov), 500, {"from": gov})
-    print(gov.balance()/1e18 - bBefore/1e18)
-
-
-    #zapper.zapStEthOut(vault.balanceOf(gov), 50, {"from": gov})
-
-    assert vault.balanceOf(gov) == 0
+    whaleP = (currency.balanceOf(whale) - whalebefore)
+    print("Whale profit: ", whaleP/1e18)
+    print("Whale profit %: ", (whaleP*21024)/whale_deposit)
 
 
 
 
-def test_migrate(currency,Strategy, strategy, chain,vault, whale,gov,strategist, interface):
+def test_migrate(currency,Strategy, strategy,ibDAI, chain,vault, whale,gov,strategist, interface):
     rate_limit = 1_000_000_000 *1e18
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, rate_limit, 1000, {"from": gov})
 
     currency.approve(vault, 2 ** 256 - 1, {"from": whale} )
-    whale_deposit  = 100 *1e18
+    whale_deposit  = 10_000 *1e18
     vault.deposit(whale_deposit, {"from": whale})
     strategy.harvest({'from': strategist})
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
 
-    chain.sleep(2592000)
     chain.mine(1)
 
     strategy.harvest({'from': strategist})
 
-    genericStateOfStrat(strategy, currency, vault)
-    genericStateOfVault(vault, currency)
-
-    print("\nEstimated APR: ", "{:.2%}".format(((vault.totalAssets()-100*1e18)*12)/(100*1e18)))
-
-
-    strategy2 = strategist.deploy(Strategy, vault)
+    strategy2 = strategist.deploy(Strategy, vault, ibDAI)
     vault.migrateStrategy(strategy, strategy2, {'from': gov})
-    genericStateOfStrat(strategy, currency, vault)
-    genericStateOfStrat(strategy2, currency, vault)
-    genericStateOfVault(vault, currency)
+    assert ibDAI.balanceOf(strategy) == 0
+    assert ibDAI.balanceOf(strategy2) > 0
+    print(ibDAI.balanceOf(strategy2))
 
-def test_reduce_limit(currency,Strategy, strategy, chain,vault, whale,gov,strategist, interface):
+def test_reduce_limit(currency,Strategy,cdai, strategy, chain,vault, ibDAI, whale,gov,strategist, interface):
     rate_limit = 1_000_000_000 *1e18
     debt_ratio = 10_000
     vault.addStrategy(strategy, debt_ratio, rate_limit, 1000, {"from": gov})
@@ -129,10 +90,29 @@ def test_reduce_limit(currency,Strategy, strategy, chain,vault, whale,gov,strate
     genericStateOfVault(vault, currency)
 
     vault.revokeStrategy(strategy, {'from': gov})
-
+    cdai.mint(0, {'from': strategist}); 
     strategy.harvest({'from': strategist})
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
+    print(ibDAI.balanceOf(strategy))
+    assert ibDAI.balanceOf(strategy) < 1_000_000
+    assert currency.balanceOf(strategy) < 10
 
-   
+def test_live_add(currency,Strategy,cdai, strategist, ibDAI, live_dai_comp_strategy, live_vault, ychad):
+    vault = live_vault
+    strategy = strategist.deploy(Strategy, vault, ibDAI)
+
+    vault.updateStrategyDebtRatio(live_dai_comp_strategy, 8_000, {'from': ychad})
+    vault.addStrategy(strategy, 1_000, 0, 1000, {"from": ychad})
+    live_dai_comp_strategy.harvest({'from': ychad})
+    live_dai_comp_strategy.harvest({'from': ychad})
+
+
+    genericStateOfStrat(strategy, currency, vault)
+    genericStateOfVault(vault, currency)
+
+    strategy.harvest({'from': ychad})
+
+    genericStateOfStrat(strategy, currency, vault)
+    genericStateOfVault(vault, currency)

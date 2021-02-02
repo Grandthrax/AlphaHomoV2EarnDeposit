@@ -2,25 +2,21 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/curve/Curve.sol";
-import "./interfaces/curve/Gauge.sol";
-import "./interfaces/curve/IMinter.sol";
-import "./interfaces/curve/ICrvV3.sol";
-import "./interfaces/lido/ISteth.sol";
+import "./interfaces/AH2/ISafeBox.sol";
 import "./interfaces/UniswapInterfaces/IUniswapV2Router02.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+import "./Interfaces/Compound/CErc20I.sol";
 
 
 // These are the core Yearn libraries
 import {
     BaseStrategy
 } from "@yearnvaults/contracts/BaseStrategy.sol";
-import {
-    SafeERC20,
-    SafeMath,
-    IERC20,
-    Address
-} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 
 
 // Import interfaces for many popular DeFi projects, or add your own!
@@ -32,79 +28,53 @@ contract Strategy is BaseStrategy {
     using SafeMath for uint256;
 
     address private uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address private sushiswapRouter = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
-    address public ldoRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address[] public ldoPath;
-
-    address public crvRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address[] public crvPath;
-
-    Gauge public LiquidityGaugeV2 =  Gauge(address(0x182B723a58739a9c974cFDB385ceaDb237453c28));
-    ICurveFi public StableSwapSTETH =  ICurveFi(address(0xDC24316b9AE028F1497c275EB9192a3Ea0f67022));
-   // IMinter public CrvMinter = IMinter(address(0xd061D61a4d941c39E5453435B6345Dc261C2fcE0));
-
+    ISafeBox public safeBox;
+    CErc20I public crToken;
+   
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    ISteth public stETH =  ISteth(address(0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84));
-    IERC20 public LDO =  IERC20(address(0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32));
-    ICrvV3 public CRV =  ICrvV3(address(0xD533a949740bb3306d119CC777fa900bA034cd52));
 
-
-    constructor(address _vault) public BaseStrategy(_vault) {
+    constructor(address _vault, address _safeBox) public BaseStrategy(_vault) {
         // You can set these parameters on deployment to whatever you want
         // maxReportDelay = 6300;
-        // profitFactor = 100;
+        profitFactor = 1000;
         // debtThreshold = 0;
+        safeBox = ISafeBox(_safeBox);
+        require(address(want) == safeBox.uToken(), "Wrong safebox");
+        crToken = CErc20I(safeBox.cToken());
 
-        want.safeApprove(address(LiquidityGaugeV2), uint256(-1));
-        stETH.approve(address(StableSwapSTETH), uint256(-1));
-        LDO.safeApprove(ldoRouter, uint256(-1));
-        CRV.approve(crvRouter, uint256(-1));
-
-        
-        ldoPath = new address[](2);
-        ldoPath[0] = address(LDO);
-        ldoPath[1] = weth;
-
-        crvPath = new address[](2);
-        crvPath[0] = address(CRV);
-        crvPath[1] = weth;
+        want.safeApprove(_safeBox, uint256(-1));
     }
 
-
-    //we get eth
-    receive() external payable {}
-
-
-    // ******** OVERRIDE THESE METHODS FROM BASE CONTRACT ************
-    function setLDORouter(bool isUniswap, address[] calldata _path) public onlyGovernance {
-        if(isUniswap){
-            ldoRouter = uniswapRouter;
-        }else{
-            ldoRouter = sushiswapRouter;
-        }
-
-        ldoPath = _path;
-        LDO.safeApprove(ldoRouter, uint256(-1));
-    }
-    function setCRVRouter(bool isUniswap, address[] calldata _path) public onlyGovernance {
-        if(isUniswap){
-            crvRouter = uniswapRouter;
-        }else{
-            crvRouter = sushiswapRouter;
-        }
-        crvPath = _path;
-        CRV.approve(crvRouter, uint256(-1));
-    }
 
     function name() external override view returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
-        return "StrategystETHCurve";
+        return "StrategyAH2Earn";
+    }
+
+    function claim(uint totalReward, bytes32[] memory proof) public onlyAuthorized {
+        safeBox.claim(totalReward, proof);
     }
 
     function estimatedTotalAssets() public override view returns (uint256) {
-        return LiquidityGaugeV2.balanceOf(address(this));
+        return want.balanceOf(address(this)).add(convertToUnderlying(safeBox.balanceOf(address(this))));
+    }
+
+    function convertToUnderlying(uint256 amountOfTokens) public view returns (uint256 balance){
+        if (amountOfTokens == 0) {
+            balance = 0;
+        } else {
+            balance = amountOfTokens.mul(crToken.exchangeRateStored()).div(1e18);
+        }
+    }
+
+    function convertFromUnderlying(uint256 amountOfUnderlying) public view returns (uint256 balance){
+        if (amountOfUnderlying == 0) {
+            balance = 0;
+        } else {
+            balance = amountOfUnderlying.mul(1e18).div(crToken.exchangeRateStored());
+        }
     }
 
     function prepareReturn(uint256 _debtOutstanding)
@@ -116,51 +86,66 @@ contract Strategy is BaseStrategy {
             uint256 _debtPayment
         )
     {
-        // TODO: Do stuff here to free up any returns back into `want`
-        // NOTE: Return `_profit` which is value generated by all positions, priced in `want`
-        // NOTE: Should try to free up at least `_debtOutstanding` of underlying position
 
-        uint256 guageTokens = LiquidityGaugeV2.balanceOf(address(this));
-        if(guageTokens > 0){
-            LiquidityGaugeV2.claim_rewards();
-            IMinter(CRV.minter()).mint(address(LiquidityGaugeV2));
+        _debtPayment = _debtOutstanding;
+        uint256 lentAssets = convertToUnderlying(safeBox.balanceOf(address(this)));
+        
+        uint256 looseAssets = want.balanceOf(address(this));
 
-           uint256 ldo_balance = LDO.balanceOf(address(this));
+        uint256 total = looseAssets.add(lentAssets);
 
-            if(ldo_balance > 0){
-                _sell(address(LDO), ldo_balance);
+        if (lentAssets == 0) {
+            //no position to harvest or profit to report
+            if (_debtPayment > looseAssets) {
+                //we can only return looseAssets
+                _debtPayment = looseAssets;
             }
 
-            uint256 crv_balance = CRV.balanceOf(address(this));
-
-            if(crv_balance > 0){
-                _sell(address(CRV), crv_balance);
-            }
-
-            uint256 balance = address(this).balance;
-            
-            uint256 halfBal = balance.div(2);
-            uint256 out = StableSwapSTETH.get_dy(0,1,halfBal);
-
-            if(out < halfBal){
-                stETH.submit{value: halfBal}(strategist);
-            }
-
-            balance = address(this).balance;
-            uint256 balance2 = stETH.balanceOf(address(this));
-
-            StableSwapSTETH.add_liquidity{value: balance}([balance, balance2], 0);
-
-            _profit = want.balanceOf(address(this));
+            return (_profit, _loss, _debtPayment);
         }
 
-        if(_debtOutstanding > 0){
-            if(_debtOutstanding > _profit){
-                uint256 stakedBal = LiquidityGaugeV2.balanceOf(address(this));
-                LiquidityGaugeV2.withdraw(Math.min(stakedBal,_debtOutstanding - _profit));
-            }
+        uint256 debt = vault.strategies(address(this)).totalDebt;
 
-            _debtPayment = Math.min(_debtOutstanding, want.balanceOf(address(this)).sub(_profit));
+        if (total > debt) {
+            _profit = total - debt;
+            uint256 amountToFree = _profit.add(_debtPayment);
+            if (amountToFree > 0 && looseAssets < amountToFree) {
+
+                //withdraw what we can withdraw
+                _withdrawSome(amountToFree.sub(looseAssets));
+                uint256 newLoose = want.balanceOf(address(this));
+
+                //if we dont have enough money adjust _debtOutstanding and only change profit if needed
+                if (newLoose < amountToFree) {
+                    if (_profit > newLoose) {
+                        _profit = newLoose;
+                        _debtPayment = 0;
+                    } else {
+                        _debtPayment = Math.min(newLoose - _profit, _debtPayment);
+                    }
+                }
+            }
+        } else {
+            //serious. loss should never happen but if it does lets record it accurately
+            _loss = debt - total;
+            uint256 amountToFree = _loss.add(_debtPayment);
+
+            if (amountToFree > 0 && looseAssets < amountToFree) {
+                //withdraw what we can withdraw
+
+                _withdrawSome(amountToFree.sub(looseAssets));
+                uint256 newLoose = want.balanceOf(address(this));
+
+                //if we dont have enough money adjust _debtOutstanding and only change profit if needed
+                if (newLoose < amountToFree) {
+                    if (_loss > newLoose) {
+                        _loss = newLoose;
+                        _debtPayment = 0;
+                    } else {
+                        _debtPayment = Math.min(newLoose - _loss, _debtPayment);
+                    }
+                }
+            }
         }
 
         
@@ -170,7 +155,46 @@ contract Strategy is BaseStrategy {
 
         uint256 _toInvest = want.balanceOf(address(this));
 
-        LiquidityGaugeV2.deposit(_toInvest);
+        safeBox.deposit(_toInvest);
+    }
+
+    //withdraw amount from safebox
+    function _withdrawSome(uint256 _amount) internal returns (uint256) {
+
+        uint256 amountInCtokens = convertFromUnderlying(_amount);
+        uint256 balanceOfSafebox = safeBox.balanceOf(address(this));
+
+        uint256 balanceBefore = want.balanceOf(address(this));
+
+        if(balanceOfSafebox < 2){
+            return 0;
+        }
+        balanceOfSafebox = balanceOfSafebox-1;
+       
+
+        if (amountInCtokens > balanceOfSafebox) {
+            //cant withdraw more than we own
+            amountInCtokens = balanceOfSafebox;
+        }
+
+        //not state changing but OK because of previous call
+        uint256 liquidity = want.balanceOf(address(crToken));
+        uint256 liquidityInCTokens = convertFromUnderlying(liquidity);
+
+        if (liquidityInCTokens > 2) {
+            liquidityInCTokens = liquidityInCTokens-1;
+           
+            if (amountInCtokens <= liquidityInCTokens) {
+                //we can take all
+                safeBox.withdraw(amountInCtokens);
+            } else {
+                //take all we can
+                safeBox.withdraw(liquidityInCTokens);
+            }
+        }
+        uint256 newBalance = want.balanceOf(address(this));
+ 
+        return newBalance.sub(balanceBefore);
     }
 
     function liquidatePosition(uint256 _amountNeeded)
@@ -178,37 +202,40 @@ contract Strategy is BaseStrategy {
         override
         returns (uint256 _liquidatedAmount, uint256 _loss)
     {
+        _loss; //should not be able to lose here
 
-        uint256 wantBal = want.balanceOf(address(this));
-        uint256 stakedBal = LiquidityGaugeV2.balanceOf(address(this));
+        uint256 looseAssets = want.balanceOf(address(this));
 
-        if(_amountNeeded > wantBal){
-            LiquidityGaugeV2.withdraw(Math.min(stakedBal, _amountNeeded - wantBal));
+        if(looseAssets < _amountNeeded){
+            _withdrawSome(_amountNeeded - looseAssets);
         }
+       
 
         _liquidatedAmount = Math.min(_amountNeeded, want.balanceOf(address(this)));
 
     }
 
-    // NOTE: Can override `tendTrigger` and `harvestTrigger` if necessary
+    function harvestTrigger(uint256 callCost) public override view returns (bool) {
+        uint256 wantCallCost = ethToWant(callCost);
+
+        return super.harvestTrigger(wantCallCost);
+    }
+
+    function ethToWant(uint256 _amount) internal view returns (uint256) {
+        address[] memory path = new address[](2);
+        path = new address[](2);
+        path[0] = weth;
+        path[1] = address(want);
+
+        uint256[] memory amounts = IUniswapV2Router02(uniswapRouter).getAmountsOut(_amount, path);
+
+        return amounts[amounts.length - 1];
+    }
 
     function prepareMigration(address _newStrategy) internal override {
-        prepareReturn(LiquidityGaugeV2.balanceOf(address(this)));
+        safeBox.transfer(_newStrategy, safeBox.balanceOf(address(this)));
     }
 
-    //sell all function
-    function _sell(address currency, uint256 amount) internal {
-
-        if(currency == address(LDO)){
-            IUniswapV2Router02(ldoRouter).swapExactTokensForETH(amount, uint256(0), ldoPath, address(this), now);
-        }
-        else if(currency == address(CRV)){
-            IUniswapV2Router02(crvRouter).swapExactTokensForETH(amount, uint256(0), crvPath, address(this), now);
-        }else{
-            require(false, "BAD SELL");
-        }
-
-    }
 
 
     // Override this to add all tokens/tokenized positions this contract manages
@@ -232,7 +259,7 @@ contract Strategy is BaseStrategy {
     {
 
         address[] memory protected = new address[](1);
-          protected[0] = address(LiquidityGaugeV2);
+          protected[0] = address(safeBox);
     
           return protected;
     }

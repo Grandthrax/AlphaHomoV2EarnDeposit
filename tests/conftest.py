@@ -9,28 +9,38 @@ def andre(accounts):
 @pytest.fixture
 def currency(interface):
     #this one is curvesteth
-    yield interface.ERC20('0x06325440D014e39736583c165C2963BA99fAf14E')
+    #yield interface.ERC20('0x06325440D014e39736583c165C2963BA99fAf14E')
+    #this is dai
+    yield interface.ERC20('0x6B175474E89094C44Da98b954EedeAC495271d0F')
 
 @pytest.fixture
 def whale(accounts, web3, currency, chain):
     #big binance7 wallet
     #acc = accounts.at('0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', force=True)
     #big binance8 wallet
-    acc = accounts.at('0x006d0f31a00e1f9c017ab039e9d0ba699433a28c', force=True)
-
+    #acc = accounts.at('0x006d0f31a00e1f9c017ab039e9d0ba699433a28c', force=True)
+    acc = accounts.at('0xC3D03e4F041Fd4cD388c549Ee2A29a9E5075882f', force=True)
     assert currency.balanceOf(acc)  > 0
     
     yield acc
 
 @pytest.fixture
 def samdev(accounts):
-    #big binance7 wallet
-    #acc = accounts.at('0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', force=True)
-    #big binance8 wallet
+
     acc = accounts.at('0xC3D6880fD95E06C816cB030fAc45b3ffe3651Cb0', force=True)
+    yield acc
 
+@pytest.fixture
+def ibDAI(interface):
+    yield interface.ISafeBox('0xee8389d235E092b2945fE363e97CDBeD121A0439')
 
-    
+@pytest.fixture
+def cdai(interface):
+    yield interface.CErc20I('0x8e595470Ed749b85C6F7669de83EAe304C2ec68F')
+
+@pytest.fixture
+def ychad(accounts):
+    acc = accounts.at('0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52', force=True)
     yield acc
 
 @pytest.fixture
@@ -76,21 +86,20 @@ def keeper(accounts):
     yield accounts[4]
 
 @pytest.fixture
-def live_strategy(Strategy):
-    strategy = Strategy.at('0xCa8C5e51e235EF1018B2488e4e78e9205064D736')
+def live_dai_comp_strategy(Strategy):
+    strategy = Strategy.at('0x4031afd3B0F71Bace9181E554A9E680Ee4AbE7dF')
 
     yield strategy
 
 @pytest.fixture
 def live_vault(pm):
     Vault = pm(config["dependencies"][0]).Vault
-    vault = Vault.at('0xdCD90C7f6324cfa40d7169ef80b12031770B4325')
+    vault = Vault.at('0x19D3364A399d251E894aC732651be8B0E4e85001')
     yield vault
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, Strategy):
-    strategy = strategist.deploy(Strategy, vault)
-    strategy.setKeeper(keeper)
+def strategy(strategist, keeper, vault,ibDAI, Strategy):
+    strategy = strategist.deploy(Strategy, vault, ibDAI)
     yield strategy
 
 @pytest.fixture
