@@ -14,6 +14,13 @@ def currency(interface):
     yield interface.ERC20('0x6B175474E89094C44Da98b954EedeAC495271d0F')
 
 @pytest.fixture
+def usdc(interface):
+    #this one is curvesteth
+    #yield interface.ERC20('0x06325440D014e39736583c165C2963BA99fAf14E')
+    #this is dai
+    yield interface.ERC20('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')
+
+@pytest.fixture
 def weth(interface):
     yield interface.ERC20('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
 
@@ -37,6 +44,10 @@ def samdev(accounts):
 @pytest.fixture
 def ibDAI(interface):
     yield interface.ISafeBox('0xee8389d235E092b2945fE363e97CDBeD121A0439')
+
+@pytest.fixture
+def ibUSDC(interface):
+    yield interface.ISafeBox('0x08bd64BFC832F1C2B3e07e634934453bA7Fa2db2')
 
 @pytest.fixture
 def cdai(interface):
@@ -98,11 +109,36 @@ def live_dai_comp_strategy(Strategy):
     strategy = Strategy.at('0x4031afd3B0F71Bace9181E554A9E680Ee4AbE7dF')
 
     yield strategy
+@pytest.fixture
+def live_usdc_comp_strategy(Strategy):
+    strategy = Strategy.at('0x4D7d4485fD600c61d840ccbeC328BfD76A050F87')
+
+    yield strategy
+
+
+@pytest.fixture
+def live_strategy(Strategy):
+    strategy = Strategy.at('0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8')
+
+    yield strategy
+
+@pytest.fixture
+def live_strategy_usdc(Strategy):
+    strategy = Strategy.at('0x86Aa49bf28d03B1A4aBEb83872cFC13c89eB4beD')
+
+    yield strategy
+
 
 @pytest.fixture
 def live_vault(pm):
     Vault = pm(config["dependencies"][0]).Vault
     vault = Vault.at('0x19D3364A399d251E894aC732651be8B0E4e85001')
+    yield vault
+
+@pytest.fixture
+def live_vault_usdc(pm):
+    Vault = pm(config["dependencies"][0]).Vault
+    vault = Vault.at('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
     yield vault
 
 @pytest.fixture

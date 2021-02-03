@@ -103,14 +103,51 @@ def test_reduce_limit(currency,Strategy,cdai, strategy, chain,vault, ibDAI, whal
     assert ibDAI.balanceOf(strategy) < 1_000_000
     assert currency.balanceOf(strategy) < 10
 
-def test_live_add(currency,Strategy,cdai, strategist, ibDAI, live_dai_comp_strategy, live_vault, ychad):
+def test_live_add_both(currency,Strategy,cdai,live_strategy, usdc, Contract, strategist, ibUSDC, ibDAI, live_dai_comp_strategy, live_vault, ychad):
     vault = live_vault
-    strategy = strategist.deploy(Strategy, vault, ibDAI)
+    strategy = live_strategy
 
-    vault.updateStrategyDebtRatio(live_dai_comp_strategy, 8_000, {'from': ychad})
+    vault_dai = Contract.from_explorer('0x19D3364A399d251E894aC732651be8B0E4e85001')
+    strategy_dai = Contract.from_explorer('0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8')
+    live_dai_comp_strategy = Contract.from_explorer('0x4031afd3B0F71Bace9181E554A9E680Ee4AbE7dF')
+
+    vault_usdc = Contract.from_explorer('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
+    strategy_usdc = Contract.from_explorer('0x86Aa49bf28d03B1A4aBEb83872cFC13c89eB4beD')
+    live_usdc_comp_strategy = Contract.from_explorer('0x4D7d4485fD600c61d840ccbeC328BfD76A050F87')
+
+    vault_dai.updateStrategyDebtRatio(live_dai_comp_strategy, 8_800, {'from': ychad})
+    vault_dai.addStrategy(strategy_dai, 1_000, 0, 1000, {"from": ychad})
+
+    vault_usdc.updateStrategyDebtRatio(live_usdc_comp_strategy, 8_800, {'from': ychad})
+    vault_usdc.addStrategy(strategy_usdc, 1_000, 0, 1000, {"from": ychad})
+
+
+    live_dai_comp_strategy.harvest({'from': ychad})
+    live_dai_comp_strategy.harvest({'from': ychad})
+    live_usdc_comp_strategy.harvest({'from': ychad})
+    live_usdc_comp_strategy.harvest({'from': ychad})
+
+    strategy_usdc.harvest({'from': ychad})
+    strategy_dai.harvest({'from': ychad})
+    print(ibUSDC.balanceOf(strategy_usdc))
+    print(usdc.balanceOf(strategy_usdc))
+
+    print(ibDAI.balanceOf(strategy_dai))
+    print(currency.balanceOf(strategy_dai))
+
+    genericStateOfStrat(strategy_usdc, usdc, vault_usdc)
+    genericStateOfStrat(strategy_dai, currency, vault_dai)
+
+def test_live_add_usdc(currency,Strategy, live_strategy, Contract, usdc, strategist, ibUSDC, live_usdc_comp_strategy, live_vault_usdc, ychad):
+    vault = live_vault_usdc
+    strategy = strategist.deploy(Strategy, vault, ibUSDC)
+    currency = usdc
+    
+
+    vault.updateStrategyDebtRatio(live_usdc_comp_strategy, 8_800, {'from': ychad})
     vault.addStrategy(strategy, 1_000, 0, 1000, {"from": ychad})
-    live_dai_comp_strategy.harvest({'from': ychad})
-    live_dai_comp_strategy.harvest({'from': ychad})
+    live_usdc_comp_strategy.harvest({'from': ychad})
+    live_usdc_comp_strategy.harvest({'from': ychad})
 
 
     genericStateOfStrat(strategy, currency, vault)
@@ -120,7 +157,6 @@ def test_live_add(currency,Strategy,cdai, strategist, ibDAI, live_dai_comp_strat
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
-
 
 def test_immediate_withdraw(currency,strategy, rewards,chain,vault,cdai, ibDAI,whale,gov,strategist, interface):
     rate_limit = 1_000_000_000 *1e18
