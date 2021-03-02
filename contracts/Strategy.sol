@@ -155,6 +155,7 @@ contract Strategy is BaseStrategy {
     //withdraw amount from safebox
     //safe to enter more than we have
     function _withdrawSome(uint256 _amount) internal returns (uint256) {
+        
 
         uint256 amountInCtokens = convertFromUnderlying(_amount);
         uint256 balanceOfSafebox = safeBox.balanceOf(address(this));
@@ -183,6 +184,9 @@ contract Strategy is BaseStrategy {
                 //we can take all
                 safeBox.withdraw(amountInCtokens);
             } else {
+                //redo or else price changes
+                crToken.mint(0);
+                liquidityInCTokens = convertFromUnderlying(want.balanceOf(address(crToken)));
                 //take all we can
                 safeBox.withdraw(liquidityInCTokens);
             }
