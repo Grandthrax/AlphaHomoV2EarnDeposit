@@ -42,6 +42,11 @@ def samdev(accounts):
     yield acc
 
 @pytest.fixture
+def strategistMs(accounts):
+    strategistMs = accounts.at('0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7', force=True)
+    yield strategistMs
+
+@pytest.fixture
 def ibDAI(interface):
     yield interface.ISafeBox('0xee8389d235E092b2945fE363e97CDBeD121A0439')
 
@@ -52,6 +57,10 @@ def ibUSDC(interface):
 @pytest.fixture
 def cdai(interface):
     yield interface.CErc20I('0x8e595470Ed749b85C6F7669de83EAe304C2ec68F')
+
+@pytest.fixture
+def cusdc(interface):
+    yield interface.CErc20I('0x76Eb2FE28b36B3ee97F3Adae0C69606eeDB2A37c')
 
 @pytest.fixture
 def cweth(interface):
@@ -92,6 +101,10 @@ def vault(pm, gov, rewards, guardian, currency):
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     yield vault
 
+@pytest.fixture
+def Vault(pm, gov, rewards, guardian, currency):
+    Vault = pm(config["dependencies"][0]).Vault
+    yield Vault
 
 @pytest.fixture
 def strategist(accounts):

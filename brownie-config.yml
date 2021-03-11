@@ -4,7 +4,7 @@ networks:
   default: mainnet-fork
   SamLocal-Fork:
     cmd_settings:
-      fork: 'http://127.0.0.1:9999@11893977'
+      #fork: 'http://127.0.0.1:9999@11893977'
 
 # automatically fetch contract sources from Etherscan
 autofetch_sources: True

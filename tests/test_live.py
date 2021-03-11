@@ -43,25 +43,34 @@ def test_opsss_lvie(currency,live_strategy, chain,live_vault, whale,gov, samdev,
 
    # vault.withdraw({"from": whale})
     print("\nWithdraw")
+    user = accounts.at('0x014de182c147f8663589d77eadb109bf86958f13', force=True)
+    vault.withdraw({"from": user})
+    print(currency.balanceOf(user)/1e18)
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
   # print("Whale profit: ", (currency.balanceOf(whale) - whalebefore)/1e18)
 
 
-def test_migrate_live(currency,Strategy, live_strategy,live_vault, chain, whale,samdev, interface):
+def test_migrate_live(currency,Strategy, accounts, ychad, live_strategy,live_vault,ibDAI, chain, whale,samdev, interface):
     strategy = live_strategy
     vault = live_vault
     strategist = samdev
-    gov = samdev
+    gov = ychad
 
-    strategy.harvest({'from': strategist})
+    #strategy.harvest({'from': strategist})
 
-    genericStateOfStrat(strategy, currency, vault)
-    genericStateOfVault(vault, currency)
+    #genericStateOfStrat(strategy, currency, vault)
+    #genericStateOfVault(vault, currency)
 
 
-    strategy2 = strategist.deploy(Strategy, vault)
+    strategy2 = strategist.deploy(Strategy, vault, ibDAI)
     vault.migrateStrategy(strategy, strategy2, {'from': gov})
+
+    print("\nWithdraw")
+    user = accounts.at('0x014de182c147f8663589d77eadb109bf86958f13', force=True)
+    vault.withdraw({"from": user})
+    print("DAI out:", currency.balanceOf(user)/1e18)
+    print("Vault tokens left:",vault.balanceOf(user)/1e18)
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfStrat(strategy2, currency, vault)
     genericStateOfVault(vault, currency)
