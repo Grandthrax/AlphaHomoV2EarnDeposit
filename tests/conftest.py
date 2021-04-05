@@ -149,6 +149,12 @@ def live_vault(pm):
     yield vault
 
 @pytest.fixture
+def live_vault_usdt(pm):
+    Vault = pm(config["dependencies"][0]).Vault
+    vault = Vault.at('0xAf322a2eDf31490250fdEb0D712621484b09aBB6')
+    yield vault
+
+@pytest.fixture
 def live_vault_usdc(pm):
     Vault = pm(config["dependencies"][0]).Vault
     vault = Vault.at('0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')

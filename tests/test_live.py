@@ -22,13 +22,13 @@ def test_opsss_lvie(currency,live_strategy, chain,live_vault, whale,gov, samdev,
     #whalebefore = currency.balanceOf(whale)
    # whale_deposit  = 100 *1e18
     #vault.deposit(whale_deposit, {"from": whale})
-    strategy.harvest({'from': strategist})
+    #strategy.harvest({'from': strategist})
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
 
-    chain.sleep(2592000)
-    chain.mine(1)
+    #chain.sleep(2592000)
+    #chain.mine(1)
 
     strategy.harvest({'from': strategist})
     steth = interface.ERC20('0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84')
@@ -74,3 +74,6 @@ def test_migrate_live(currency,Strategy, accounts, ychad, live_strategy,live_vau
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfStrat(strategy2, currency, vault)
     genericStateOfVault(vault, currency)
+
+
+  def test_distributor(currency,live_strategy, chain,live_vault, whale,gov, samdev,strategist, interface):
