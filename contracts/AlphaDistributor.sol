@@ -16,7 +16,7 @@ contract AlphaDistributor {
     using SafeMath for uint256;
 
     address public governance = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
-    address public strategist = 0x769B66253237107650C3C6c84747DFa2B071780e;
+    address public strategist = 0xC3D6880fD95E06C816cB030fAc45b3ffe3651Cb0;
 
     address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address public sushiswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
@@ -37,12 +37,12 @@ contract AlphaDistributor {
         usdcPath = new address[](3);
         usdcPath[0] = alpha;
         usdcPath[1] = weth;
-        usdcPath[0] = usdc;
+        usdcPath[2] = usdc;
 
         daiPath = new address[](3);
         daiPath[0] = alpha;
         daiPath[1] = weth;
-        daiPath[0] = dai;
+        daiPath[2] = dai;
 
         IERC20(alpha).safeApprove(uniswapRouter, type(uint256).max);
         IERC20(alpha).safeApprove(sushiswapRouter, type(uint256).max);
