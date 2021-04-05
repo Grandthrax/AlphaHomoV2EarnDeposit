@@ -19,8 +19,8 @@ contract AlphaDistributor {
     address public strategist = 0xC3D6880fD95E06C816cB030fAc45b3ffe3651Cb0;
 
     address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address public sushiswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address public router = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address public sushiswapRouter = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
+    address public router = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     address public daiStrat = 0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8;
     address public usdcStrat = 0x86Aa49bf28d03B1A4aBEb83872cFC13c89eB4beD;

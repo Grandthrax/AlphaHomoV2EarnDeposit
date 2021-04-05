@@ -25,6 +25,10 @@ def weth(interface):
     yield interface.ERC20('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
 
 @pytest.fixture
+def alpha(interface):
+    yield interface.ERC20('0xa1faa113cbE53436Df28FF0aEe54275c13B40975')
+
+@pytest.fixture
 def whale(accounts, web3, currency, chain):
     #big binance7 wallet
     #acc = accounts.at('0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', force=True)

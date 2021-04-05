@@ -76,4 +76,29 @@ def test_migrate_live(currency,Strategy, accounts, ychad, live_strategy,live_vau
     genericStateOfVault(vault, currency)
 
 
-  def test_distributor(currency,live_strategy, chain,live_vault, whale,gov, samdev,strategist, interface):
+def test_distributor(currency, accounts,Contract, chain, whale,gov, samdev,strategist, interface, alpha, AlphaDistributor):
+    ms = accounts.at("0x16388463d60ffe0661cf7f1f31a7d658ac790ff7", force=True)
+    vault = Contract("0x19D3364A399d251E894aC732651be8B0E4e85001", owner=ms)
+    strategy = Contract("0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8", owner=ms)
+    currency = interface.ERC20(vault.token())
+    genericStateOfStrat(strategy, currency, vault)
+    print("Alpha in ms:", alpha.balanceOf(ms)/1e18)
+
+    distributer = samdev.deploy(AlphaDistributor)
+    alpha.transfer(distributer, alpha.balanceOf(ms)/2, {'from': ms})
+    distributer.sellDai(alpha.balanceOf(distributer), {'from': samdev})
+    genericStateOfStrat(strategy, currency, vault)
+
+
+    strategy = Contract(distributer.usdcStrat())
+    vault = Contract(strategy.vault())
+    currency = interface.ERC20(vault.token())
+    genericStateOfStrat(strategy, currency, vault)
+
+    alpha.transfer(distributer, alpha.balanceOf(ms), {'from': ms})
+    distributer.sellUsdc(alpha.balanceOf(distributer), {'from': samdev})
+    genericStateOfStrat(strategy, currency, vault)
+
+
+
+
