@@ -6,12 +6,12 @@ from useful_methods import genericStateOfStrat,genericStateOfVault
 import random
 import brownie
 
-def test_opsss_lvie(currency,Strategy, chain,live_vault_usdt, whale,gov, samdev,strategist, interface):
+def test_opsss_lvie(currency,Strategy, chain,live_vault_usdt, whale,gov,ibUSDT, samdev,strategist, interface, accounts):
 
     strategist = samdev
     vault = live_vault_usdt
 
-    strategy = strategist.deploy(Strategy, vault, ibDAI)
+    strategy = strategist.deploy(Strategy, vault, ibUSDT)
 
     gov = samdev
 
