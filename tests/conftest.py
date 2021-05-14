@@ -59,6 +59,10 @@ def ibUSDC(interface):
     yield interface.ISafeBox('0x08bd64BFC832F1C2B3e07e634934453bA7Fa2db2')
 
 @pytest.fixture
+def ibUSDT(interface):
+    yield interface.ISafeBox('0x020eDC614187F9937A1EfEeE007656C6356Fb13A')
+
+@pytest.fixture
 def cdai(interface):
     yield interface.CErc20I('0x8e595470Ed749b85C6F7669de83EAe304C2ec68F')
 
@@ -155,7 +159,7 @@ def live_vault(pm):
 @pytest.fixture
 def live_vault_usdt(pm):
     Vault = pm(config["dependencies"][0]).Vault
-    vault = Vault.at('0xAf322a2eDf31490250fdEb0D712621484b09aBB6')
+    vault = Vault.at('0x7Da96a3891Add058AdA2E826306D812C638D87a7')
     yield vault
 
 @pytest.fixture

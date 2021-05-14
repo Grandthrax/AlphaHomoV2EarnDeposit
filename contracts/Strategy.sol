@@ -27,12 +27,16 @@ contract Strategy is BaseStrategy {
     using Address for address;
     using SafeMath for uint256;
 
-    address private uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address private constant uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address private constant sushiswapRouter = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
+    address public router = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     ISafeBox public safeBox;
     CErc20I public crToken;
    
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant alpha = 0xa1faa113cbE53436Df28FF0aEe54275c13B40975;
+    address[] public path;
 
 
     constructor(address _vault, address _safeBox) public BaseStrategy(_vault) {
@@ -45,8 +49,26 @@ contract Strategy is BaseStrategy {
         crToken = CErc20I(safeBox.cToken());
 
         want.safeApprove(_safeBox, uint256(-1));
+
+        path = new address[](3);
+        path[0] = alpha;
+        path[1] = weth;
+        path[2] = address(want);
+        IERC20(alpha).safeApprove(uniswapRouter, type(uint256).max);
+        IERC20(alpha).safeApprove(sushiswapRouter, type(uint256).max);
     }
 
+    function setUseSushi(bool _useSushi) public onlyAuthorized {
+        if(_useSushi){
+            router = sushiswapRouter;
+        }else{
+            router = uniswapRouter;
+        }
+    }
+
+    function sellAlpha(uint256 amount) public onlyAuthorized{
+        IUniswapV2Router02(router).swapExactTokensForTokens(amount, 0, path, address(this), now);
+    }
 
     function name() external override view returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
