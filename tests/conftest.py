@@ -67,6 +67,10 @@ def cdai(interface):
     yield interface.CErc20I('0x8e595470Ed749b85C6F7669de83EAe304C2ec68F')
 
 @pytest.fixture
+def cusdt(interface):
+    yield interface.CErc20I('0x48759f220ed983db51fa7a8c0d2aab8f3ce4166a')
+
+@pytest.fixture
 def cusdc(interface):
     yield interface.CErc20I('0x76Eb2FE28b36B3ee97F3Adae0C69606eeDB2A37c')
 

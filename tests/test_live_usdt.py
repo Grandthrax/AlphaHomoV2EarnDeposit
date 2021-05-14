@@ -6,45 +6,37 @@ from useful_methods import genericStateOfStrat,genericStateOfVault
 import random
 import brownie
 
-def test_opsss_lvie(currency,Strategy, chain,live_vault_usdt, whale,gov,ibUSDT, samdev,strategist, interface, accounts):
+def test_opsss_lvie(currency,Strategy, Contract,cusdt, chain,live_vault_usdt, whale,gov,ibUSDT, samdev,strategist, interface, accounts):
 
     strategist = samdev
     vault = live_vault_usdt
 
+    currency = interface.ERC20(vault.token())
+
     strategy = strategist.deploy(Strategy, vault, ibUSDT)
 
-    gov = samdev
+    gov = accounts.at(vault.governance(), force=True)
 
+    strat1 = Contract(vault.withdrawalQueue(0))
+    vault.updateStrategyDebtRatio(strat1, 0, {'from': gov})
+    vault.addStrategy(strategy, 2000, 0,2**256-1, 1000, {'from': gov})
 
-
-    currency.approve(vault, 2 ** 256 - 1, {"from": whale} )
-    #whalebefore = currency.balanceOf(whale)
-   # whale_deposit  = 100 *1e18
-    #vault.deposit(whale_deposit, {"from": whale})
-    strategy.harvest({'from': strategist})
+    strat1.harvest({'from': gov})
+    strategy.harvest({'from': gov})
+    ibUSDT
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
 
     chain.sleep(2592000)
-    chain.mine(1)
+    chain.mine(100)
+    cusdt.mint(0, {'from': gov})
+
 
     strategy.harvest({'from': strategist})
-    steth = interface.ERC20('0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84')
-
-    print("steth = ", steth.balanceOf(strategy)/1e18)
-    print("eth = ", strategy.balance()/1e18)
+    
 
     genericStateOfStrat(strategy, currency, vault)
     genericStateOfVault(vault, currency)
 
     print("\nEstimated APR: ", "{:.2%}".format(((vault.totalAssets()-1000*1e18)*12)/(1000*1e18)))
-
-   # vault.withdraw({"from": whale})
-    print("\nWithdraw")
-    user = accounts.at('0x014de182c147f8663589d77eadb109bf86958f13', force=True)
-    vault.withdraw({"from": user})
-    print(currency.balanceOf(user)/1e18)
-    genericStateOfStrat(strategy, currency, vault)
-    genericStateOfVault(vault, currency)
-  # print("Whale profit: ", (currency.balanceOf(whale) - whalebefore)/1e18)
